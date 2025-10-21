@@ -1,0 +1,82 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environment
+venv/
+ENV/
+env/
+.venv
+
+# PyQt
+*.ui.autosave
+*.qrc.autosave
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs
+*.log
+logs/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Storage (archivos generados localmente)
+storage/exports/*
+!storage/exports/.gitkeep
+storage/cache/*
+!storage/cache/.gitkeep
+
+# Uploads (si decides guardar archivos temporales localmente)
+uploads/
+
+# Archivos de configuración específicos del usuario
+config.local.py
+
+# OS
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Backups
+*.bak
+*.backup
+*.old
+
+# Temporary files
+*.tmp
+*.temp

@@ -1,0 +1,26 @@
+# GUI Framework
+PyQt6>=6.4.0
+
+# QR Code Generation
+segno>=1.5.0
+qrcode[pil]>=7.4.0
+
+# Image Processing
+Pillow>=9.5.0
+
+# HTTP Client
+requests>=2.31.0
+
+# PDF Generation
+reportlab>=4.0.0
+
+# SVG Processing
+svglib>=1.5.0
+
+# vCard Generation
+vobject>=0.9.6.1
+
+# Development Tools
+pytest>=7.4.0
+black>=23.0.0
+flake8>=6.0.0
