@@ -143,11 +143,10 @@ class MainWindow(QMainWindow):
         title.setStyleSheet("font-size: 16px; font-weight: bold; padding: 10px;")
         layout.addWidget(title)
         
-        # Mensaje temporal
-        temp_label = QLabel("Aquí se mostrará:\n\n• Preview del QR en tiempo real\n• Zoom\n• Controles de visualización")
-        temp_label.setStyleSheet("padding: 20px; color: #666;")
-        temp_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(temp_label)
+        # Widget de preview (importar aquí)
+        from ui.preview_widget import PreviewWidget
+        self.preview_widget = PreviewWidget()
+        layout.addWidget(self.preview_widget, stretch=1)
         
         # Botón de prueba
         test_button = QPushButton("🎨 Generar QR de Prueba")
@@ -159,8 +158,6 @@ class MainWindow(QMainWindow):
         export_button.setStyleSheet("background-color: #4CAF50; color: white; padding: 10px; font-weight: bold;")
         export_button.clicked.connect(self.export_qr)
         layout.addWidget(export_button)
-        
-        layout.addStretch()
         
         return panel
         
@@ -235,7 +232,22 @@ class MainWindow(QMainWindow):
     def test_qr_generation(self):
         """Función de prueba para generar QR"""
         self.statusBar().showMessage("🎨 Generando QR de prueba...", 3000)
-        print("🎨 Acción: Generar QR de prueba")
+        print("🎨 Generando QR de prueba...")
+        
+        # Importar el generador
+        from core.qr_generator import QRGenerator
+        
+        # Crear generador
+        generator = QRGenerator()
+        
+        # Generar QR de ejemplo
+        qr_image = generator.generate_url("https://www.example.com", scale=10)
+        
+        # Mostrar en el preview
+        self.preview_widget.update_qr(qr_image)
+        
+        self.statusBar().showMessage("✅ QR generado correctamente", 3000)
+        print("✅ QR generado y mostrado en preview")
         
     def export_qr(self):
         """Exportar QR"""
