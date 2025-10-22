@@ -20,6 +20,9 @@ class MainWindow(QMainWindow):
     
     def __init__(self):
         super().__init__()
+        # Variables para almacenar el QR actual
+        self.current_qr_content = None
+        self.current_qr_type = None
         self.init_ui()
         
     def init_ui(self):
@@ -123,13 +126,14 @@ class MainWindow(QMainWindow):
         title.setStyleSheet("font-size: 16px; font-weight: bold; padding: 10px;")
         layout.addWidget(title)
         
-        # Mensaje temporal
-        temp_label = QLabel("Aquí irá:\n\n• Selector de tipo de QR\n• Formulario dinámico\n• Campos de entrada")
-        temp_label.setStyleSheet("padding: 20px; color: #666;")
-        temp_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(temp_label)
+        # Importar y agregar el formulario URL
+        from ui.tabs.url_tab import URLTab
+        self.url_tab = URLTab()
         
-        layout.addStretch()
+        # Conectar la señal del formulario con la generación de QR
+        self.url_tab.generate_qr_requested.connect(self.generate_qr_from_url)
+        
+        layout.addWidget(self.url_tab)
         
         return panel
         
@@ -311,7 +315,10 @@ class MainWindow(QMainWindow):
         
         # Para este ejemplo, exportamos el contenido actual
         # TODO: En el futuro, guardaremos el contenido original del QR
-        test_content = "https://www.example.com"
+        if self.current_qr_content:
+            test_content  = self.current_qr_content
+        else:
+            test_content  = "https://www.example.com"  # Fallback
         
         success = False
         if file_format == "SVG":
@@ -333,3 +340,41 @@ class MainWindow(QMainWindow):
                 f"❌ Error al exportar el QR como {file_format}"
             )
             self.statusBar().showMessage("❌ Error al exportar", 5000)
+    def generate_qr_from_url(self, url):
+        """
+        Generar QR desde el formulario URL
+        
+        Args:
+            url: URL para generar el QR
+        """
+        self.statusBar().showMessage(f"🎨 Generando QR para: {url}", 3000)
+        print(f"🎨 Generando QR para: {url}")
+        
+        try:
+            # Importar el generador
+            from core.qr_generator import QRGenerator
+            
+            # Crear generador
+            generator = QRGenerator()
+            
+            # Generar QR
+            qr_image = generator.generate_url(url, scale=10)
+            
+            # Mostrar en el preview
+            self.preview_widget.update_qr(qr_image)
+            
+            # Guardar el contenido actual para exportación
+            self.current_qr_content = url
+            self.current_qr_type = 'url'
+            
+            self.statusBar().showMessage("✅ QR generado correctamente", 3000)
+            print("✅ QR generado y mostrado en preview")
+            
+        except Exception as e:
+            from PyQt6.QtWidgets import QMessageBox
+            QMessageBox.critical(
+                self,
+                "Error",
+                f"❌ Error al generar QR:\n{str(e)}"
+            )
+            print(f"❌ Error: {e}")
