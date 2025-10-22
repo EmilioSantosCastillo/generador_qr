@@ -8,7 +8,7 @@ Versión: 1.0.0
 
 import sys
 import signal
-from PyQt6.QtWidgets import QApplication, QMessageBox
+from PyQt6.QtWidgets import QApplication
 from PyQt6.QtCore import Qt, QTimer
 
 # Importar configuración
@@ -43,7 +43,7 @@ def main():
     except AttributeError:
         pass  # No disponible en esta versión
     
-    # Por ahora, solo mostramos un mensaje
+    # Mostrar información en consola
     print("=" * 60)
     print(f"🚀 {config.APP_NAME} v{config.APP_VERSION}")
     print("=" * 60)
@@ -52,8 +52,8 @@ def main():
     print(f"📁 Directorio base: {config.BASE_DIR}")
     print(f"🎨 Tipos de QR disponibles: {len(config.QR_TYPES)}")
     print()
-    print("⚠️  La interfaz gráfica aún no está implementada")
-    print("   Presiona Ctrl+C para salir o cierra esta ventana")
+    print("✅ Interfaz gráfica cargada correctamente")
+    print("   Cierra la ventana para salir")
     print()
     
     # Timer para procesar eventos (permite que Ctrl+C funcione)
@@ -61,10 +61,10 @@ def main():
     timer.timeout.connect(lambda: None)
     timer.start(100)
     
-    # TODO: Aquí irá la ventana principal cuando la creemos
-    # from ui.main_window import MainWindow
-    # window = MainWindow()
-    # window.show()
+    # Importar y mostrar ventana principal
+    from ui.main_window import MainWindow
+    window = MainWindow()
+    window.show()
     
     # Ejecutar la aplicación
     return app.exec()
