@@ -118,6 +118,8 @@ class MainWindow(QMainWindow):
         
     def create_left_panel(self):
         """Crear panel izquierdo - Selector y Formulario"""
+        from PyQt6.QtWidgets import QTabWidget
+        
         panel = QWidget()
         layout = QVBoxLayout(panel)
         
@@ -126,14 +128,42 @@ class MainWindow(QMainWindow):
         title.setStyleSheet("font-size: 16px; font-weight: bold; padding: 10px;")
         layout.addWidget(title)
         
-        # Importar y agregar el formulario URL
+        # TabWidget para los diferentes tipos de QR
+        self.qr_tabs = QTabWidget()
+        self.qr_tabs.setStyleSheet("""
+            QTabWidget::pane {
+                border: 1px solid #ddd;
+                border-radius: 5px;
+            }
+            QTabBar::tab {
+                background: #f0f0f0;
+                padding: 8px 15px;
+                margin-right: 2px;
+            }
+            QTabBar::tab:selected {
+                background: #4CAF50;
+                color: white;
+            }
+            QTabBar::tab:hover {
+                background: #e0e0e0;
+            }
+        """)
+        
+        # Importar y agregar formularios
         from ui.tabs.url_tab import URLTab
+        from ui.tabs.whatsapp_tab import WhatsAppTab
+        
+        # Pestaña URL
         self.url_tab = URLTab()
-        
-        # Conectar la señal del formulario con la generación de QR
         self.url_tab.generate_qr_requested.connect(self.generate_qr_from_url)
+        self.qr_tabs.addTab(self.url_tab, "🌐 URL")
         
-        layout.addWidget(self.url_tab)
+        # Pestaña WhatsApp
+        self.whatsapp_tab = WhatsAppTab()
+        self.whatsapp_tab.generate_qr_requested.connect(self.generate_qr_from_whatsapp)
+        self.qr_tabs.addTab(self.whatsapp_tab, "💬 WhatsApp")
+        
+        layout.addWidget(self.qr_tabs)
         
         return panel
         
@@ -376,5 +406,52 @@ class MainWindow(QMainWindow):
                 self,
                 "Error",
                 f"❌ Error al generar QR:\n{str(e)}"
+            )
+            print(f"❌ Error: {e}")
+    def generate_qr_from_whatsapp(self, phone, message):
+        """
+        Generar QR desde el formulario WhatsApp
+        
+        Args:
+            phone: Número de teléfono completo (con código de país)
+            message: Mensaje opcional
+        """
+        self.statusBar().showMessage(f"🎨 Generando QR para WhatsApp: +{phone}", 3000)
+        print(f"🎨 Generando QR para WhatsApp: +{phone}")
+        
+        try:
+            # Importar el generador
+            from core.qr_generator import QRGenerator
+            
+            # Crear generador
+            generator = QRGenerator()
+            
+            # Generar QR
+            qr_image = generator.generate_whatsapp(phone, message, scale=10)
+            
+            # Mostrar en el preview
+            self.preview_widget.update_qr(qr_image)
+            
+            # Guardar el contenido para exportación
+            # Construir la URL de WhatsApp
+            import urllib.parse
+            if message:
+                message_encoded = urllib.parse.quote(message)
+                whatsapp_url = f"https://wa.me/{phone}?text={message_encoded}"
+            else:
+                whatsapp_url = f"https://wa.me/{phone}"
+            
+            self.current_qr_content = whatsapp_url
+            self.current_qr_type = 'whatsapp'
+            
+            self.statusBar().showMessage("✅ QR de WhatsApp generado correctamente", 3000)
+            print("✅ QR generado y mostrado en preview")
+            
+        except Exception as e:
+            from PyQt6.QtWidgets import QMessageBox
+            QMessageBox.critical(
+                self,
+                "Error",
+                f"❌ Error al generar QR de WhatsApp:\n{str(e)}"
             )
             print(f"❌ Error: {e}")
