@@ -251,5 +251,85 @@ class MainWindow(QMainWindow):
         
     def export_qr(self):
         """Exportar QR"""
-        self.statusBar().showMessage("💾 Exportando QR...", 3000)
-        print("💾 Acción: Exportar QR")
+        from PyQt6.QtWidgets import QFileDialog, QMessageBox
+        from core.qr_exporter import QRExporter
+        
+        # Verificar que hay un QR para exportar
+        current_image = self.preview_widget.get_current_image()
+        if current_image is None:
+            QMessageBox.warning(
+                self,
+                "Sin QR",
+                "No hay ningún código QR para exportar.\nPrimero genera un QR."
+            )
+            return
+        
+        # Diálogo para elegir formato
+        format_dialog = QMessageBox()
+        format_dialog.setWindowTitle("Formato de Exportación")
+        format_dialog.setText("¿En qué formato deseas exportar el QR?")
+        
+        svg_button = format_dialog.addButton("📐 SVG (Vectorial)", QMessageBox.ButtonRole.AcceptRole)
+        png_button = format_dialog.addButton("🖼️ PNG (Imagen)", QMessageBox.ButtonRole.AcceptRole)
+        cancel_button = format_dialog.addButton("Cancelar", QMessageBox.ButtonRole.RejectRole)
+        
+        format_dialog.exec()
+        
+        clicked_button = format_dialog.clickedButton()
+        
+        if clicked_button == cancel_button:
+            return
+        
+        # Determinar formato elegido
+        if clicked_button == svg_button:
+            file_format = "SVG"
+            file_extension = "svg"
+            file_filter = "Archivos SVG (*.svg)"
+        else:  # PNG
+            file_format = "PNG"
+            file_extension = "png"
+            file_filter = "Archivos PNG (*.png)"
+        
+        # Diálogo para elegir ubicación
+        from core.qr_exporter import QRExporter
+        exporter = QRExporter()
+        default_filename = exporter.generate_filename('qr', file_extension)
+        default_path = exporter.get_default_export_path(default_filename)
+        
+        filepath, _ = QFileDialog.getSaveFileName(
+            self,
+            f"Guardar QR como {file_format}",
+            str(default_path),
+            file_filter
+        )
+        
+        if not filepath:
+            return  # Usuario canceló
+        
+        # Exportar
+        self.statusBar().showMessage(f"💾 Exportando como {file_format}...", 2000)
+        
+        # Para este ejemplo, exportamos el contenido actual
+        # TODO: En el futuro, guardaremos el contenido original del QR
+        test_content = "https://www.example.com"
+        
+        success = False
+        if file_format == "SVG":
+            success = exporter.export_svg(test_content, filepath, scale=10)
+        else:  # PNG
+            success = exporter.export_png(test_content, filepath, scale=10)
+        
+        if success:
+            QMessageBox.information(
+                self,
+                "Exportación Exitosa",
+                f"✅ QR exportado correctamente como {file_format}\n\n📁 {filepath}"
+            )
+            self.statusBar().showMessage(f"✅ QR exportado como {file_format}", 5000)
+        else:
+            QMessageBox.critical(
+                self,
+                "Error",
+                f"❌ Error al exportar el QR como {file_format}"
+            )
+            self.statusBar().showMessage("❌ Error al exportar", 5000)
