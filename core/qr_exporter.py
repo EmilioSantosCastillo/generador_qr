@@ -20,7 +20,8 @@ class QRExporter:
         """Inicializar exportador"""
         pass
     
-    def export_svg(self, qr_content, filepath, scale=10, error_correction='Q'):
+    def export_svg(self, qr_content, filepath, scale=10, error_correction='Q', 
+               dark_color='#000000', light_color='#FFFFFF', pattern_style='squares', frame_style='none'):
         """
         Exportar QR como SVG (vectorial)
         
@@ -29,6 +30,9 @@ class QRExporter:
             filepath: Ruta donde guardar el archivo
             scale: Escala del QR
             error_correction: Nivel de corrección (L, M, Q, H)
+            dark_color: Color de los módulos oscuros (hex)
+            light_color: Color de fondo (hex)
+            pattern_style: Estilo del patrón (para patrones avanzados se exporta como PNG)
             
         Returns:
             bool: True si se exportó correctamente
@@ -39,25 +43,60 @@ class QRExporter:
             if filepath.suffix.lower() != '.svg':
                 filepath = filepath.with_suffix('.svg')
             
-            # Crear QR
-            qr = segno.make(qr_content, error=error_correction)
+            # Si es un patrón avanzado (circles, flowers, hearts, dots)
+            # Exportamos como PNG en lugar de SVG
+            if pattern_style not in ['squares', 'rounded']:
+                print(f"⚠️ Los patrones avanzados no soportan SVG. Exportando como PNG...")
+                
+                # Cambiar extensión a PNG
+                filepath = filepath.with_suffix('.png')
+                
+                # Usar QRGenerator para generar con patrón
+                from core.qr_generator import QRGenerator
+                generator = QRGenerator(error_correction)
+                
+                qr_image = generator.generate(
+                    qr_content,
+                    scale=scale,
+                    dark_color=dark_color,
+                    light_color=light_color,
+                    pattern_style=pattern_style,
+                    frame_style=frame_style  # ← AGREGAR
+                )
+                
+                # Guardar como PNG
+                qr_image.save(str(filepath), format='PNG')
+                print(f"✅ QR exportado como PNG: {filepath}")
+                return True
             
-            # Guardar como SVG
-            qr.save(
-                str(filepath),
-                kind='svg',
-                scale=scale,
-                border=1  # Borde mínimo
-            )
-            
-            print(f"✅ QR exportado como SVG: {filepath}")
-            return True
+            # Para patrones simples (squares, rounded), usar SVG nativo
+            else:
+                # Crear QR con segno
+                qr = segno.make(qr_content, error=error_correction)
+                
+                # Convertir colores hex a formato para SVG (sin #)
+                dark_hex = dark_color.lstrip('#')
+                light_hex = light_color.lstrip('#')
+                
+                # Guardar como SVG con colores
+                qr.save(
+                    str(filepath),
+                    kind='svg',
+                    scale=scale,
+                    border=1,
+                    dark='#' + dark_hex,
+                    light='#' + light_hex
+                )
+                
+                print(f"✅ QR exportado como SVG: {filepath}")
+                return True
             
         except Exception as e:
             print(f"❌ Error al exportar SVG: {e}")
             return False
-    
-    def export_png(self, qr_content, filepath, scale=10, error_correction='Q'):
+        
+    def export_png(self, qr_content, filepath, scale=10, error_correction='Q',
+               dark_color='#000000', light_color='#FFFFFF', pattern_style='squares', frame_style='none'):
         """
         Exportar QR como PNG (rasterizado)
         
@@ -66,6 +105,9 @@ class QRExporter:
             filepath: Ruta donde guardar
             scale: Escala del QR (tamaño de cada módulo en píxeles)
             error_correction: Nivel de corrección
+            dark_color: Color de los módulos oscuros (hex)
+            light_color: Color de fondo (hex)
+            pattern_style: Estilo del patrón ('squares', 'rounded', 'circles', etc.)
             
         Returns:
             bool: True si se exportó correctamente
@@ -76,16 +118,22 @@ class QRExporter:
             if filepath.suffix.lower() != '.png':
                 filepath = filepath.with_suffix('.png')
             
-            # Crear QR
-            qr = segno.make(qr_content, error=error_correction)
+            # Usar QRGenerator para tener soporte de patrones
+            from core.qr_generator import QRGenerator
+            generator = QRGenerator(error_correction)
             
-            # Guardar como PNG
-            qr.save(
-                str(filepath),
-                kind='png',
+            # Generar QR con patrón y colores personalizados
+            qr_image = generator.generate(
+                qr_content,
                 scale=scale,
-                border=1
+                dark_color=dark_color,
+                light_color=light_color,
+                pattern_style=pattern_style,
+                frame_style=frame_style  # ← AGREGAR
             )
+            
+            # Guardar la imagen
+            qr_image.save(str(filepath), format='PNG')
             
             print(f"✅ QR exportado como PNG: {filepath}")
             return True
@@ -93,6 +141,22 @@ class QRExporter:
         except Exception as e:
             print(f"❌ Error al exportar PNG: {e}")
             return False
+
+    def _hex_to_rgb(self, hex_color):
+        """
+        Convierte color hexadecimal a tupla RGB
+        
+        Args:
+            hex_color: Color en formato hex (#RRGGBB)
+            
+        Returns:
+            tuple: (R, G, B) valores de 0-255
+        """
+        # Remover el # si existe
+        hex_color = hex_color.lstrip('#')
+        
+        # Convertir a RGB
+        return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
     
     def export_from_pil(self, pil_image, filepath, format='PNG'):
         """

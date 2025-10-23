@@ -154,6 +154,7 @@ class MainWindow(QMainWindow):
         from ui.tabs.whatsapp_tab import WhatsAppTab
         from ui.tabs.wifi_tab import WiFiTab
         
+        
         # Pestaña URL
         self.url_tab = URLTab()
         self.url_tab.generate_qr_requested.connect(self.generate_qr_from_url)
@@ -202,22 +203,24 @@ class MainWindow(QMainWindow):
         return panel
         
     def create_right_panel(self):
-        """Crear panel derecho - Personalización"""
+        """Panel derecho - Personalización del QR"""
+        from ui.customization_panel import CustomizationPanel
+
         panel = QWidget()
-        layout = QVBoxLayout(panel)
+        panel.setMinimumWidth(350)
+        panel.setMaximumWidth(400)
+        panel.setStyleSheet("background-color: #f8f9fa; border-left: 1px solid #dee2e6;")
         
-        # Título
-        title = QLabel("🎨 Personalización")
-        title.setStyleSheet("font-size: 16px; font-weight: bold; padding: 10px;")
-        layout.addWidget(title)
+        layout = QVBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
         
-        # Mensaje temporal
-        temp_label = QLabel("Aquí irá:\n\n• Marcos\n• Patrones\n• Colores\n• Esquinas\n• Logos")
-        temp_label.setStyleSheet("padding: 20px; color: #666;")
-        temp_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(temp_label)
+        # Panel de personalización
+        self.customization_panel = CustomizationPanel()
+        self.customization_panel.customization_changed.connect(self.on_customization_changed)
         
-        layout.addStretch()
+        layout.addWidget(self.customization_panel)
+        panel.setLayout(layout)
         
         return panel
         
@@ -351,16 +354,43 @@ class MainWindow(QMainWindow):
         
         # Para este ejemplo, exportamos el contenido actual
         # TODO: En el futuro, guardaremos el contenido original del QR
+       # Obtener el contenido y la configuración de colores
         if self.current_qr_content:
-            test_content  = self.current_qr_content
+            test_content = self.current_qr_content
         else:
-            test_content  = "https://www.example.com"  # Fallback
-        
+            test_content = "https://www.example.com"  # Fallback
+
+        # Obtener colores personalizados del panel
+        customization_config = self.customization_panel.get_config()
+        dark_color = customization_config['pattern_color']
+        light_color = customization_config['background_color']
+
+        # Obtener patrón seleccionado
+        # Obtener patrón y marco seleccionados
+        pattern_style = customization_config['pattern_style']
+        frame_style = customization_config['frame_style']  # ← AGREGAR
+
         success = False
         if file_format == "SVG":
-            success = exporter.export_svg(test_content, filepath, scale=10)
+            success = exporter.export_svg(
+                test_content, 
+                filepath, 
+                scale=10,
+                dark_color=dark_color,
+                light_color=light_color,
+                pattern_style=pattern_style,
+                frame_style=frame_style  # ← AGREGAR
+            )
         else:  # PNG
-            success = exporter.export_png(test_content, filepath, scale=10)
+            success = exporter.export_png(
+                test_content, 
+                filepath, 
+                scale=10,
+                dark_color=dark_color,
+                light_color=light_color,
+                pattern_style=pattern_style,
+                frame_style=frame_style  # ← AGREGAR
+            )
         
         if success:
             QMessageBox.information(
@@ -495,3 +525,47 @@ class MainWindow(QMainWindow):
                 f"❌ Error al generar QR de WiFi:\n{str(e)}"
             )
             print(f"❌ Error: {e}")
+
+    def on_customization_changed(self, config):
+        """
+        Manejar cambios en la personalización del QR
+        
+        Args:
+            config: Diccionario con la configuración de personalización
+        """
+        print(f"🎨 Personalización actualizada: {config}")
+        
+        # Si hay un QR activo, regenerarlo con los nuevos colores
+        if self.current_qr_content:
+            self.regenerate_qr_with_customization(config)
+    def regenerate_qr_with_customization(self, config):
+        """
+        Regenerar el QR actual con la personalización aplicada
+        
+        Args:
+            config: Configuración de personalización
+        """
+        try:
+            from core.qr_generator import QRGenerator
+            
+            # Crear generador con colores personalizados
+            generator = QRGenerator()
+            
+            # Generar QR con colores
+            qr_image = generator.generate(
+                self.current_qr_content,
+                scale=10,
+                dark_color=config['pattern_color'],
+                light_color=config['background_color'],
+                pattern_style=config['pattern_style'],  # ← AGREGAR ESTA LÍNEA
+                frame_style=config['frame_style']  # ← AGREGAR ESTA LÍNEA
+            )
+            
+            # Actualizar preview
+            self.preview_widget.update_qr(qr_image)
+            
+            self.statusBar().showMessage("✅ QR actualizado con personalización", 2000)
+            print("✅ QR regenerado con personalización")
+            
+        except Exception as e:
+            print(f"⚠️ Error al regenerar QR: {e}")

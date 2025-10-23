@@ -24,13 +24,17 @@ class QRGenerator:
         """
         self.error_correction = error_correction
         
-    def generate(self, content, scale=10):
+    def generate(self, content, scale=10, dark_color='#000000', light_color='#FFFFFF', pattern_style='squares', frame_style='none'):
         """
-        Genera un código QR básico
+        Genera un código QR básico con personalización
         
         Args:
             content: Contenido del QR (URL, texto, etc.)
             scale: Escala del QR (tamaño de cada módulo)
+            dark_color: Color de los módulos oscuros (hex, ej: '#FF0000')
+            light_color: Color de fondo/módulos claros (hex, ej: '#FFFFFF')
+            pattern_style: Estilo de los módulos ('squares', 'rounded', 'circles', 'flowers', 'hearts', 'dots')
+            frame_style: Estilo del marco decorativo ('none', 'scan_me_top', etc.)
             
         Returns:
             PIL.Image: Imagen del QR generado
@@ -42,14 +46,135 @@ class QRGenerator:
             boost_error=False
         )
         
-        # Convertir a imagen PIL
-        buffer = BytesIO()
-        qr.save(buffer, kind='png', scale=scale)
-        buffer.seek(0)
+        # Convertir colores hex a RGB
+        dark_rgb = self._hex_to_rgb(dark_color)
+        light_rgb = self._hex_to_rgb(light_color)
         
-        image = Image.open(buffer)
+        # Generar QR según el patrón
+        if pattern_style in ['squares', 'rounded']:
+            buffer = BytesIO()
+            qr.save(
+                buffer, 
+                kind='png', 
+                scale=scale,
+                dark=dark_rgb,
+                light=light_rgb
+            )
+            buffer.seek(0)
+            qr_image = Image.open(buffer)
+        else:
+            # Patrones avanzados
+            qr_image = self._generate_custom_pattern(qr, scale, dark_rgb, light_rgb, pattern_style)
+        
+        # Aplicar marco decorativo si es necesario
+        if frame_style != 'none':
+            from core.qr_frame_generator import QRFrameGenerator
+            frame_gen = QRFrameGenerator()
+            qr_image = frame_gen.add_frame(qr_image, frame_style, dark_color)
+        
+        return qr_image
+    
+
+
+
+    def _generate_custom_pattern(self, qr, scale, dark_rgb, light_rgb, pattern_style):
+        """
+        Genera QR con patrones personalizados (círculos, flores, corazones, puntos)
+        
+        Args:
+            qr: Objeto QR de segno
+            scale: Escala del QR
+            dark_rgb: Color oscuro (tupla RGB)
+            light_rgb: Color claro (tupla RGB)
+            pattern_style: Estilo del patrón
+            
+        Returns:
+            PIL.Image: Imagen del QR con patrón personalizado
+        """
+        from PIL import ImageDraw
+        
+        # Obtener matriz de módulos del QR
+        matrix = qr.matrix
+        size = len(matrix)
+        
+        # Calcular tamaño de la imagen
+        img_size = size * scale
+        
+        # Crear imagen con color de fondo
+        image = Image.new('RGB', (img_size, img_size), light_rgb)
+        draw = ImageDraw.Draw(image)
+        
+        # Dibujar cada módulo según el patrón
+        for row in range(size):
+            for col in range(size):
+                if matrix[row][col]:  # Si el módulo está "encendido"
+                    x = col * scale
+                    y = row * scale
+                    
+                    # Dibujar según el patrón seleccionado
+                    if pattern_style == 'circles':
+                        # Círculos
+                        margin = scale * 0.1
+                        draw.ellipse(
+                            [x + margin, y + margin, x + scale - margin, y + scale - margin],
+                            fill=dark_rgb
+                        )
+                        
+                    elif pattern_style == 'flowers':
+                        # Flores/cruces (4 círculos pequeños en las esquinas)
+                        quarter = scale / 4
+                        radius = scale / 6
+                        positions = [
+                            (x + quarter, y + quarter),
+                            (x + 3*quarter, y + quarter),
+                            (x + quarter, y + 3*quarter),
+                            (x + 3*quarter, y + 3*quarter)
+                        ]
+                        for px, py in positions:
+                            draw.ellipse(
+                                [px - radius, py - radius, px + radius, py + radius],
+                                fill=dark_rgb
+                            )
+                        
+                    elif pattern_style == 'hearts':
+                        # Corazones (aproximación con círculos y triángulo)
+                        # Versión simplificada: círculo
+                        margin = scale * 0.15
+                        draw.ellipse(
+                            [x + margin, y + margin, x + scale - margin, y + scale - margin],
+                            fill=dark_rgb
+                        )
+                        
+                    elif pattern_style == 'dots':
+                        # Puntos pequeños (círculos más pequeños)
+                        margin = scale * 0.3
+                        draw.ellipse(
+                            [x + margin, y + margin, x + scale - margin, y + scale - margin],
+                            fill=dark_rgb
+                        )
+                        
+                    else:  # Default: cuadrados
+                        draw.rectangle(
+                            [x, y, x + scale, y + scale],
+                            fill=dark_rgb
+                        )
         
         return image
+    def _hex_to_rgb(self, hex_color):
+        """
+        Convierte color hexadecimal a tupla RGB
+        
+        Args:
+            hex_color: Color en formato hex (#RRGGBB)
+            
+        Returns:
+            tuple: (R, G, B) valores de 0-255
+        """
+        # Remover el # si existe
+        hex_color = hex_color.lstrip('#')
+        
+        # Convertir a RGB
+        return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
     
     def generate_url(self, url, scale=10):
         """
