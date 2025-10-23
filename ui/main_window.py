@@ -152,6 +152,7 @@ class MainWindow(QMainWindow):
         # Importar y agregar formularios
         from ui.tabs.url_tab import URLTab
         from ui.tabs.whatsapp_tab import WhatsAppTab
+        from ui.tabs.wifi_tab import WiFiTab
         
         # Pestaña URL
         self.url_tab = URLTab()
@@ -162,6 +163,11 @@ class MainWindow(QMainWindow):
         self.whatsapp_tab = WhatsAppTab()
         self.whatsapp_tab.generate_qr_requested.connect(self.generate_qr_from_whatsapp)
         self.qr_tabs.addTab(self.whatsapp_tab, "💬 WhatsApp")
+
+        # Pestaña WiFi
+        self.wifi_tab = WiFiTab()
+        self.wifi_tab.generate_qr_requested.connect(self.generate_qr_from_wifi)
+        self.qr_tabs.addTab(self.wifi_tab, "📶 WiFi")
         
         layout.addWidget(self.qr_tabs)
         
@@ -453,5 +459,39 @@ class MainWindow(QMainWindow):
                 self,
                 "Error",
                 f"❌ Error al generar QR de WhatsApp:\n{str(e)}"
+            )
+            print(f"❌ Error: {e}")
+
+    def generate_qr_from_wifi(self, wifi_string, qr_type):
+        """Generar QR desde la pestaña WiFi"""
+        self.statusBar().showMessage(f"🎨 Generando QR para WiFi", 3000)
+        print(f"🎨 Generando QR para WiFi: {wifi_string[:50]}...")
+        
+        try:
+            # Importar el generador
+            from core.qr_generator import QRGenerator
+            
+            # Crear generador
+            generator = QRGenerator()
+            
+            # Generar QR
+            qr_image = generator.generate(wifi_string, scale=10)
+            
+            # Mostrar en el preview
+            self.preview_widget.update_qr(qr_image)
+            
+            # Guardar el contenido para exportación
+            self.current_qr_content = wifi_string
+            self.current_qr_type = 'wifi'
+            
+            self.statusBar().showMessage("✅ QR de WiFi generado correctamente", 3000)
+            print("✅ QR generado y mostrado en preview")
+            
+        except Exception as e:
+            from PyQt6.QtWidgets import QMessageBox
+            QMessageBox.critical(
+                self,
+                "Error",
+                f"❌ Error al generar QR de WiFi:\n{str(e)}"
             )
             print(f"❌ Error: {e}")
